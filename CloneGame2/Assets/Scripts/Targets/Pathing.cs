@@ -2,33 +2,39 @@ using UnityEngine;
 
 public class Pathing : MonoBehaviour
 {
-    public Transform[] pathingPoints;
+    //[SerializeField] private Rigidbody2D rb;
+    private Transform target;
     public float speed;
     public int destination;
 
+    void Start()
+    {
+        target = PathingVar.main.pathingPoints[0];
+    }
     void FixedUpdate()
     {
         PathingControl();
     }
     public void PathingControl()
     {
-        Transform targetPoint = pathingPoints[destination];
-        transform.position = Vector2.MoveTowards(transform.position, targetPoint.position, speed * Time.deltaTime);
+        transform.position = Vector2.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
 
-         if (Vector2.Distance(transform.position, targetPoint.position) < .2f)
+         if (Vector2.Distance(transform.position, target.position) < .1f)
         {
             destination++;
+
+            if (destination == PathingVar.main.pathingPoints.Length)
+            {
+                Destroy (gameObject);
+                return;
+            }
+            else
+            {
+                target = PathingVar.main.pathingPoints[destination];
+            }
         }
     }
     
-    public void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("EndPoint"))
-        {
-            Destroy(gameObject); 
-            //insert damage to the game system: other.gameObject.GetComponent<gameHealth>()health -= damage;
-        }
-       
-    }
+   
  
 }

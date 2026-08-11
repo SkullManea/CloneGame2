@@ -2,22 +2,17 @@ using UnityEngine;
 
 public class Spawning : MonoBehaviour
 {
-    public GameObject ball;
+    public GameObject[] ballPrefabs;
     public Transform ballPos;
 
     private float timer;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+   
 
-    // Update is called once per frame
     void Update()
     {
         timer += Time.deltaTime;
 
-        if(timer > 0.7f)
+        if(timer > 1.3f)
         {
             timer = 0;
             Spawn();
@@ -26,6 +21,8 @@ public class Spawning : MonoBehaviour
 
     void Spawn()
     {
-        Instantiate(ball, ballPos.position, Quaternion.identity);
+        int index = Random.Range(0, ballPrefabs.Length);
+        GameObject prefabToSpawn = ballPrefabs[index];
+        Instantiate(prefabToSpawn, ballPos.position, Quaternion.identity);
     }
 }
