@@ -4,14 +4,20 @@ using UnityEngine.InputSystem;
 public class ShooterController : MonoBehaviour
 {
     [Header("Shooter References")]
-    [SerializeField] private Transform pivot;
-    [SerializeField] private Transform muzzlePoint;
+
+    [SerializeField]
+    private Transform pivot;
+    [SerializeField] 
+    private Transform muzzlePoint;
 
     [Header("Projectile")]
-    [SerializeField] private GameObject projectilePrefab;
-    [SerializeField] private float projectileSpeed = 10f;
 
-    [SerializeField] private float shootCooldown = 0.25f;
+    [SerializeField] 
+    private GameObject projectilePrefab;
+    [SerializeField] 
+    private float projectileSpeed = 10f;
+    [SerializeField] 
+    private float shootCooldown = 0.25f;
     private float nextShootTime;
 
     private BallColour currentColour;
