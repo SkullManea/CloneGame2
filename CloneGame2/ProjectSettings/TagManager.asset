@@ -6,6 +6,7 @@ TagManager:
   tags:
   - EndPoint
   - Target
+  - Ball
   layers:
   - Default
   - TransparentFX
