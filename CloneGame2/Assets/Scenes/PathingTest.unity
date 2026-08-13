@@ -340,6 +340,7 @@ MonoBehaviour:
   - {fileID: 6868400960397828084, guid: 3866897437b175e4dacbeb7bcc34ba84, type: 3}
   - {fileID: 6868400960397828084, guid: 792a2e1d253de7e49b96e9a17b03d8ee, type: 3}
   ballPos: {fileID: 1350634379}
+  spawnTimer: 30
 --- !u!4 &1350634379
 Transform:
   m_ObjectHideFlags: 0
