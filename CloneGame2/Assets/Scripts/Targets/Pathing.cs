@@ -6,7 +6,8 @@ public class Pathing : MonoBehaviour
     private Transform target;
     public float speed;
     public int destination;
-    public Spawning spawning;
+    public Transform hole;
+
    
 
     void Start()
@@ -40,6 +41,11 @@ public class Pathing : MonoBehaviour
 
     }
 
+    public void EndState()
+    {
+        Debug.Log("Ahhh");
+        speed = 3f;
+    }
    
     
    

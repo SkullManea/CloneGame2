@@ -143,4 +143,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pathing
   speed: 0.8
   destination: 0
-  spawning: {fileID: 0}
