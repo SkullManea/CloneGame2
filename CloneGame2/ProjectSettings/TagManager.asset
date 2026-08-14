@@ -7,6 +7,14 @@ TagManager:
   - EndPoint
   - Target
   - Ball
+  - Yellow
+  - Green
+  - Red
+  - Blue
+  - green
+  - blue
+  - yellow
+  - red
   layers:
   - Default
   - TransparentFX
