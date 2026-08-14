@@ -6,9 +6,11 @@ public class Spawning : MonoBehaviour
     public GameObject[] ballPrefabs;
     public Transform ballPos;
     public float spawnTimer;
+    public float endCondition;
 
     private float timer;
     private bool isSpawning = true;
+    public bool endScenario = false;
    
     void Start()
     {
@@ -41,5 +43,9 @@ public class Spawning : MonoBehaviour
         yield return new WaitForSeconds(spawnTimer);
         isSpawning = false;
         Debug.Log("stopped");
+
+        yield return new WaitForSeconds(endCondition);
+        endScenario = true;
+        Debug.Log("End");
     }
 }
