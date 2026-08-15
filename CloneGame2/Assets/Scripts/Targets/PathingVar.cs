@@ -2,11 +2,11 @@ using UnityEngine;
 
 public class PathingVar : MonoBehaviour
 {
-   public static PathingVar main;
+    public static PathingVar main;
 
-   public Transform[] pathingPoints;
+    public Transform[] pathingPoints;
 
-   private void Awake()
+    private void Awake()
     {
         main = this;
     }

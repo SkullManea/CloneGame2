@@ -2,27 +2,42 @@ using UnityEngine;
 
 public class Spawning : MonoBehaviour
 {
-    public GameObject[] ballPrefabs;
-    public Transform ballPos;
+    [SerializeField] private float spawnInterval = 1.3f;
 
     private float timer;
-   
 
-    void Update()
+    private void Update()
     {
         timer += Time.deltaTime;
 
-        if(timer > 1.3f)
+        if (timer >= spawnInterval)
         {
-            timer = 0;
+            timer = 0f;
+
             Spawn();
         }
     }
 
-    void Spawn()
+    private void Spawn()
     {
-        int index = Random.Range(0, ballPrefabs.Length);
-        GameObject prefabToSpawn = ballPrefabs[index];
-        Instantiate(prefabToSpawn, ballPos.position, Quaternion.identity);
+        BallColour colour =
+            GetRandomColour();
+
+        BallChainManager.Instance.AddBallAtEnd(
+            colour
+        );
+    }
+
+    private BallColour GetRandomColour()
+    {
+        int numberOfColours =
+            System.Enum.GetValues(
+                typeof(BallColour)
+            ).Length;
+
+        return (BallColour)Random.Range(
+            0,
+            numberOfColours
+        );
     }
 }
