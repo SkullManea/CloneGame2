@@ -1457,7 +1457,7 @@ MonoBehaviour:
   - {fileID: 289475489}
   - {fileID: 297652167}
   spawnPoint: {fileID: 1118750758}
-  totalBallsToSpawn: 30
+  totalBallsToSpawn: 24
   spawnInterval: 0.5
   movementSpeed: 1.3
   speedIncreaseAmount: 0.5
