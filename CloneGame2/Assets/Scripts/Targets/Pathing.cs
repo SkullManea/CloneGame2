@@ -6,11 +6,15 @@ public class Pathing : MonoBehaviour
     private Transform target;
     public float speed;
     public int destination;
+    public Transform hole;
+
+   
 
     void Start()
     {
         target = PathingVar.main.pathingPoints[0];
     }
+
     void FixedUpdate()
     {
         PathingControl();
@@ -25,15 +29,24 @@ public class Pathing : MonoBehaviour
 
             if (destination == PathingVar.main.pathingPoints.Length)
             {
+                
                 Destroy (gameObject);
-                return;
+                return;  
             }
             else
             {
                 target = PathingVar.main.pathingPoints[destination];
             }
         }
+
     }
+
+    public void EndState()
+    {
+        Debug.Log("Ahhh");
+        speed = 3f;
+    }
+   
     
    
  
