@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -5,82 +6,48 @@ public class BallChainManager : MonoBehaviour
 {
     public static BallChainManager Instance;
 
-    // =========================================================
-    // PATH
-    // =========================================================
-
     [Header("Path")]
-    [Tooltip("The 7 red waypoint transforms in order.")]
     [SerializeField] private Transform[] pathPoints;
 
-    // =========================================================
-    // SPAWN POINT
-    // =========================================================
-
-    [Header("Spawn Point")]
-    [Tooltip("The fixed point where new balls enter the chain.")]
+    [Header("Spawn")]
     [SerializeField] private Transform spawnPoint;
-
-    // =========================================================
-    // MOVEMENT
-    // =========================================================
+    [SerializeField] private int totalBallsToSpawn = 30;
+    [SerializeField] private float spawnInterval = 0.5f;
 
     [Header("Chain Movement")]
     [SerializeField] private float movementSpeed = 1f;
 
-    // =========================================================
-    // BALL SPACING
-    // =========================================================
+    [Header("Speed Progression")]
+    [SerializeField] private float speedIncreaseAmount = 0.5f;
+    [SerializeField] private int firstSpeedWaypoint = 3;
+    [SerializeField] private int secondSpeedWaypoint = 6;
 
     [Header("Ball Spacing")]
     [SerializeField] private float ballSpacing = 0.75f;
 
-    // =========================================================
-    // BALL PREFABS
-    // =========================================================
+    [Header("Snap Back")]
+    [SerializeField] private float snapBackSpeed = 4f;
+    [SerializeField] private bool enableSnapBack = true;
 
     [Header("Ball Prefabs")]
     [SerializeField] private GameObject[] ballPrefabs;
 
-    // =========================================================
-    // INTERNAL CHAIN
-    // =========================================================
-
-    private readonly List<Ball> balls =
-        new List<Ball>();
-
-    // =========================================================
-    // INTERNAL PATH
-    // =========================================================
-
-    /*
-     * This contains:
-     *
-     * [0] = SpawnPoint
-     * [1] = Path Point 0
-     * [2] = Path Point 1
-     * [3] = Path Point 2
-     * ...
-     *
-     * The SpawnPoint is therefore part of the
-     * path calculation, but its Transform is
-     * NEVER moved.
-     */
+    private readonly List<Ball> balls = new List<Ball>();
 
     private Transform[] completePath;
-
     private float[] pathDistances;
-
     private float totalPathLength;
 
-    /*
-     * Distance travelled by the FRONT of the chain.
-     */
     private float chainDistance;
+    private float snapBackOffset;
 
-    // =========================================================
-    // UNITY
-    // =========================================================
+    private int ballsSpawned;
+
+    private Coroutine snapBackCoroutine;
+
+    private bool gameEnded;
+    private bool firstSpeedIncreaseTriggered;
+    private bool secondSpeedIncreaseTriggered;
 
     private void Awake()
     {
@@ -89,21 +56,27 @@ public class BallChainManager : MonoBehaviour
         BuildCompletePath();
     }
 
-    private void Update()
+    private void Start()
     {
-        MoveChain();
+        StartCoroutine(SpawnBallSequence());
     }
 
-    // =========================================================
-    // BUILD PATH
-    // =========================================================
+    private void Update()
+    {
+        if (gameEnded)
+        {
+            return;
+        }
+
+        MoveChain();
+    }
 
     private void BuildCompletePath()
     {
         if (spawnPoint == null)
         {
             Debug.LogError(
-                "BallChainManager: Spawn Point has not been assigned."
+                "BallChainManager: SpawnPoint has not been assigned."
             );
 
             return;
@@ -111,22 +84,15 @@ public class BallChainManager : MonoBehaviour
 
         if (
             pathPoints == null ||
-            pathPoints.Length < 1
+            pathPoints.Length == 0
         )
         {
             Debug.LogError(
-                "BallChainManager: You need to assign your path points."
+                "BallChainManager: No path points assigned."
             );
 
             return;
         }
-
-        /*
-         * Create a new array that is one element
-         * larger than pathPoints.
-         *
-         * The first element is the fixed SpawnPoint.
-         */
 
         completePath =
             new Transform[pathPoints.Length + 1];
@@ -146,10 +112,6 @@ public class BallChainManager : MonoBehaviour
 
         CalculatePathDistances();
     }
-
-    // =========================================================
-    // CALCULATE PATH DISTANCES
-    // =========================================================
 
     private void CalculatePathDistances()
     {
@@ -188,34 +150,110 @@ public class BallChainManager : MonoBehaviour
         }
     }
 
-   
-
     private void MoveChain()
     {
         if (balls.Count == 0)
+        {
             return;
-
-        
+        }
 
         chainDistance +=
             movementSpeed *
             Time.deltaTime;
 
-       
+        CheckSpeedProgression();
 
         RemoveBallsAtEnd();
-
-       
 
         UpdateBallPositions();
     }
 
-    
+    private void CheckSpeedProgression()
+    {
+        float frontDistance =
+            chainDistance -
+            snapBackOffset;
+
+        int currentWaypoint =
+            GetWaypointAtDistance(
+                frontDistance
+            );
+
+        if (
+            !firstSpeedIncreaseTriggered &&
+            currentWaypoint >= firstSpeedWaypoint
+        )
+        {
+            movementSpeed +=
+                speedIncreaseAmount;
+
+            firstSpeedIncreaseTriggered =
+                true;
+
+            Debug.Log(
+                "Reached waypoint " +
+                firstSpeedWaypoint +
+                ". Speed increased to " +
+                movementSpeed
+            );
+        }
+
+        if (
+            !secondSpeedIncreaseTriggered &&
+            currentWaypoint >= secondSpeedWaypoint
+        )
+        {
+            movementSpeed +=
+                speedIncreaseAmount;
+
+            secondSpeedIncreaseTriggered =
+                true;
+
+            Debug.Log(
+                "Reached waypoint " +
+                secondSpeedWaypoint +
+                ". Speed increased to " +
+                movementSpeed
+            );
+        }
+    }
+
+    private int GetWaypointAtDistance(
+        float distance
+    )
+    {
+        if (
+            pathDistances == null ||
+            pathDistances.Length == 0
+        )
+        {
+            return 0;
+        }
+
+        for (
+            int i = 1;
+            i < pathDistances.Length;
+            i++
+        )
+        {
+            if (
+                distance <
+                pathDistances[i]
+            )
+            {
+                return i - 1;
+            }
+        }
+
+        return pathDistances.Length - 1;
+    }
 
     private void UpdateBallPositions()
     {
         if (balls.Count == 0)
+        {
             return;
+        }
 
         for (
             int i = 0;
@@ -227,14 +265,14 @@ public class BallChainManager : MonoBehaviour
                 balls[i];
 
             if (ball == null)
+            {
                 continue;
-
+            }
 
             float distance =
                 chainDistance -
-                (i * ballSpacing);
-
-          
+                (i * ballSpacing) -
+                snapBackOffset;
 
             distance =
                 Mathf.Max(
@@ -249,11 +287,41 @@ public class BallChainManager : MonoBehaviour
         }
     }
 
-
-    public Ball AddBallAtEnd(
-        BallColour colour
-    )
+    private IEnumerator SpawnBallSequence()
     {
+        ballsSpawned = 0;
+
+        while (
+            ballsSpawned <
+            totalBallsToSpawn
+        )
+        {
+            if (gameEnded)
+            {
+                yield break;
+            }
+
+            SpawnBall();
+
+            ballsSpawned++;
+
+            yield return new WaitForSeconds(
+                spawnInterval
+            );
+        }
+
+        Debug.Log(
+            "Finished spawning " +
+            ballsSpawned +
+            " balls."
+        );
+    }
+
+    private void SpawnBall()
+    {
+        BallColour colour =
+            GetRandomColour();
+
         GameObject prefab =
             GetBallPrefab(
                 colour
@@ -262,23 +330,12 @@ public class BallChainManager : MonoBehaviour
         if (prefab == null)
         {
             Debug.LogError(
-                "No ball prefab found for colour: "
-                + colour
+                "No prefab found for " +
+                colour
             );
 
-            return null;
+            return;
         }
-
-        if (spawnPoint == null)
-        {
-            Debug.LogError(
-                "Spawn Point is not assigned."
-            );
-
-            return null;
-        }
-
-       
 
         GameObject newObject =
             Instantiate(
@@ -293,30 +350,22 @@ public class BallChainManager : MonoBehaviour
         if (newBall == null)
         {
             Debug.LogError(
-                "The ball prefab does not have Ball.cs."
+                "Ball prefab requires Ball.cs."
             );
 
             Destroy(
                 newObject
             );
 
-            return null;
+            return;
         }
-
-     
 
         balls.Add(
             newBall
         );
 
-
-
         UpdateBallPositions();
-
-        return newBall;
     }
-
-    
 
     public Ball InsertBall(
         int index,
@@ -331,14 +380,12 @@ public class BallChainManager : MonoBehaviour
         if (prefab == null)
         {
             Debug.LogError(
-                "No ball prefab found for colour: "
-                + colour
+                "No prefab found for " +
+                colour
             );
 
             return null;
         }
-
-       
 
         GameObject newObject =
             Instantiate(
@@ -352,18 +399,12 @@ public class BallChainManager : MonoBehaviour
 
         if (newBall == null)
         {
-            Debug.LogError(
-                "The ball prefab does not have Ball.cs."
-            );
-
             Destroy(
                 newObject
             );
 
             return null;
         }
-
-       
 
         index =
             Mathf.Clamp(
@@ -372,56 +413,15 @@ public class BallChainManager : MonoBehaviour
                 balls.Count
             );
 
-      
-
         balls.Insert(
             index,
             newBall
         );
 
-       
-
         UpdateBallPositions();
-
-        Debug.Log(
-            "Inserted "
-            + colour
-            + " ball at index "
-            + index
-        );
 
         return newBall;
     }
-
-    
-
-    public void RemoveBall(
-        Ball ball
-    )
-    {
-        if (ball == null)
-            return;
-
-        if (!balls.Contains(ball))
-            return;
-
-        
-        
-
-        balls.Remove(
-            ball
-        );
-
-       
-
-        ball.Pop();
-
-        
-
-        UpdateBallPositions();
-    }
-
-    
 
     public void RemoveBalls(
         List<Ball> ballsToRemove
@@ -435,7 +435,7 @@ public class BallChainManager : MonoBehaviour
             return;
         }
 
-       
+        int removedCount = 0;
 
         foreach (
             Ball ball
@@ -443,20 +443,21 @@ public class BallChainManager : MonoBehaviour
         )
         {
             if (ball == null)
+            {
                 continue;
+            }
 
             if (!balls.Contains(ball))
+            {
                 continue;
+            }
 
             balls.Remove(
                 ball
             );
+
+            removedCount++;
         }
-
-       
-
-        UpdateBallPositions();
-
 
         foreach (
             Ball ball
@@ -464,14 +465,178 @@ public class BallChainManager : MonoBehaviour
         )
         {
             if (ball == null)
+            {
                 continue;
+            }
 
             ball.Pop();
         }
+
+        if (
+            ScoreManager.Instance != null &&
+            removedCount > 0
+        )
+        {
+            ScoreManager.Instance.AddScore(
+                removedCount
+            );
+        }
+
+        UpdateBallPositions();
+
+        if (
+            enableSnapBack &&
+            removedCount > 0
+        )
+        {
+            float distanceToMoveBack =
+                removedCount *
+                ballSpacing;
+
+            StartSnapBack(
+                distanceToMoveBack
+            );
+        }
+
+        CheckForGameOver();
     }
 
-    
- 
+    private void StartSnapBack(
+        float distance
+    )
+    {
+        if (snapBackCoroutine != null)
+        {
+            StopCoroutine(
+                snapBackCoroutine
+            );
+        }
+
+        snapBackCoroutine =
+            StartCoroutine(
+                SnapBack(
+                    distance
+                )
+            );
+    }
+
+    private IEnumerator SnapBack(
+        float distance
+    )
+    {
+        float targetOffset =
+            snapBackOffset +
+            distance;
+
+        while (
+            snapBackOffset <
+            targetOffset
+        )
+        {
+            if (gameEnded)
+            {
+                yield break;
+            }
+
+            snapBackOffset =
+                Mathf.MoveTowards(
+                    snapBackOffset,
+                    targetOffset,
+                    snapBackSpeed *
+                    Time.deltaTime
+                );
+
+            UpdateBallPositions();
+
+            yield return null;
+        }
+
+        snapBackOffset =
+            targetOffset;
+
+        UpdateBallPositions();
+
+        snapBackCoroutine =
+            null;
+    }
+
+    private void RemoveBallsAtEnd()
+    {
+        while (
+            balls.Count > 0
+        )
+        {
+            float frontDistance =
+                chainDistance -
+                snapBackOffset;
+
+            if (
+                frontDistance <
+                totalPathLength +
+                ballSpacing
+            )
+            {
+                break;
+            }
+
+            Ball ball =
+                balls[0];
+
+            balls.RemoveAt(
+                0
+            );
+
+            if (ball != null)
+            {
+                Destroy(
+                    ball.gameObject
+                );
+            }
+        }
+
+        CheckForGameOver();
+    }
+
+    private void CheckForGameOver()
+    {
+        if (gameEnded)
+        {
+            return;
+        }
+
+        if (
+            ballsSpawned >=
+            totalBallsToSpawn &&
+            balls.Count == 0
+        )
+        {
+            EndGame();
+        }
+    }
+
+    private void EndGame()
+    {
+        if (gameEnded)
+        {
+            return;
+        }
+
+        gameEnded = true;
+
+        if (snapBackCoroutine != null)
+        {
+            StopCoroutine(
+                snapBackCoroutine
+            );
+
+            snapBackCoroutine = null;
+        }
+
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.ShowScorePanel();
+        }
+    }
 
     public int GetBallIndex(
         Ball ball
@@ -481,8 +646,6 @@ public class BallChainManager : MonoBehaviour
             ball
         );
     }
-
-   
 
     public Ball GetBallAtIndex(
         int index
@@ -499,51 +662,15 @@ public class BallChainManager : MonoBehaviour
         return balls[index];
     }
 
-   
-
     public int GetBallCount()
     {
         return balls.Count;
     }
 
-    
-
     public List<Ball> GetBalls()
     {
         return balls;
     }
-
-    
-
-    private void RemoveBallsAtEnd()
-    {
-        while (
-            balls.Count > 0 &&
-            chainDistance >
-            totalPathLength +
-            ballSpacing
-        )
-        {
-            Ball ball =
-                balls[0];
-
-            
-           
-
-            balls.RemoveAt(
-                0
-            );
-
-            if (ball != null)
-            {
-                Destroy(
-                    ball.gameObject
-                );
-            }
-        }
-    }
-
-   
 
     private GameObject GetBallPrefab(
         BallColour colour
@@ -555,13 +682,17 @@ public class BallChainManager : MonoBehaviour
         )
         {
             if (prefab == null)
+            {
                 continue;
+            }
 
             Ball ball =
                 prefab.GetComponent<Ball>();
 
             if (ball == null)
+            {
                 continue;
+            }
 
             if (
                 ball.Colour ==
@@ -575,7 +706,18 @@ public class BallChainManager : MonoBehaviour
         return null;
     }
 
-  
+    private BallColour GetRandomColour()
+    {
+        int numberOfColours =
+            System.Enum.GetValues(
+                typeof(BallColour)
+            ).Length;
+
+        return (BallColour)Random.Range(
+            0,
+            numberOfColours
+        );
+    }
 
     private Vector3 GetPositionAtDistance(
         float distance
@@ -589,17 +731,14 @@ public class BallChainManager : MonoBehaviour
             return spawnPoint.position;
         }
 
-        
-
         if (distance <= 0f)
         {
             return spawnPoint.position;
         }
 
-        
-
         if (
-            distance >= totalPathLength
+            distance >=
+            totalPathLength
         )
         {
             return completePath[
@@ -607,7 +746,6 @@ public class BallChainManager : MonoBehaviour
             ].position;
         }
 
-       
         for (
             int i = 1;
             i < completePath.Length;
